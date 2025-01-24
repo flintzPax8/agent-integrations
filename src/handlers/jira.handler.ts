@@ -42,6 +42,20 @@ export class JiraCommandHandler {
       return this.formatTicketsResponse(tickets);
     }
 
+    // Command: create PROJECT-KEY "Title" "Description" [EPIC-KEY] [--type TYPE]
+    const createRegex = /^create ([A-Z]+) "([^"]+)"(?:\s+"([^"]+)")?(?:\s+([A-Z]+-\d+))?(?:\s+--type\s+([^\s]+))?$/i;
+    if (command.match(createRegex)) {
+      const [, projectKey, summary, description, epicKey, issueType] = command.match(createRegex)!;
+      const ticket = await this.jiraService.createTicket({
+        projectKey,
+        summary,
+        description,
+        epicKey,
+        issueType
+      });
+      return `Created ticket ${ticket.key}: ${ticket.fields.summary}`;
+    }
+
     return 'Invalid command. Available commands:\n' +
            'TICKET-123\n' +
            'ticket TICKET-123\n' +
@@ -49,7 +63,8 @@ export class JiraCommandHandler {
            'search text or search "text with spaces"\n' +
            'sprint PROJECT-KEY (current sprint)\n' +
            'sprint PROJECT-KEY assignee John Doe (current sprint by assignee)\n' +
-           'sprint tickets PROJECT-KEY SPRINT-ID';
+           'sprint tickets PROJECT-KEY SPRINT-ID\n' +
+           'create PROJECT-KEY "Title" "Description" [EPIC-KEY] [--type TYPE]';
   }
 
   private formatTicketResponse(ticket: any): string {

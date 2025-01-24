@@ -94,4 +94,50 @@ export class JiraService {
     });
     return response.issues as unknown as JiraTicketResponse[];
   }
+
+  async createTicket(params: {
+    projectKey: string;
+    summary: string;
+    description?: string;
+    epicKey?: string;
+    issueType?: string;
+  }): Promise<JiraTicketResponse> {
+    try {
+      const issueData = {
+        fields: {
+          project: { key: params.projectKey },
+          summary: params.summary,
+          description: params.description || '',
+          issuetype: { name: params.issueType || 'Story' }
+        }
+      };
+
+      const response = await this.client.addNewIssue(issueData);
+      
+      // If epic key is provided, link the ticket to the epic
+      if (params.epicKey) {
+        await this.linkTicketToEpic(response.key, params.epicKey);
+      }
+
+      return response as unknown as JiraTicketResponse;
+    } catch (error: any) {
+      throw new Error(`Failed to create ticket: ${error.message}`);
+    }
+  }
+
+  private async linkTicketToEpic(ticketKey: string, epicKey: string): Promise<void> {
+    try {
+      // First verify the epic exists
+      await this.getTicketById(epicKey);
+      
+      // Link the ticket to the epic using the "Epic Link" field
+      await this.client.updateIssue(ticketKey, {
+        fields: {
+          customfield_10014: epicKey // Note: Epic Link field ID may vary in your Jira instance
+        }
+      });
+    } catch (error: any) {
+      throw new Error(`Failed to link ticket to epic: ${error.message}`);
+    }
+  }
 } 
