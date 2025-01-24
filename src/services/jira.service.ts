@@ -107,9 +107,11 @@ export class JiraService {
     // Validate issue type
     const validIssueTypes = ['Story', 'Task', 'Bug', 'Epic'];
     const issueType = params.issueType || 'Story';
-    
+
     if (!validIssueTypes.includes(issueType)) {
-      throw new Error(`Invalid issue type: ${issueType}. Must be one of: ${validIssueTypes.join(', ')}`);
+      throw new Error(
+        `Invalid issue type: ${issueType}. Must be one of: ${validIssueTypes.join(', ')}`
+      );
     }
     try {
       const issueData = {
@@ -117,8 +119,8 @@ export class JiraService {
           project: { key: params.projectKey },
           summary: params.summary,
           description: params.description || '',
-          issuetype: { 
-            name: params.issueType || 'Story'
+          issuetype: {
+            name: params.issueType || 'Story',
           },
         },
       };
@@ -144,7 +146,7 @@ export class JiraService {
       // Link the ticket to the epic using the parent field
       await this.client.updateIssue(ticketKey, {
         fields: {
-          parent: { key: epicKey }
+          parent: { key: epicKey },
         },
       });
     } catch (error: any) {
@@ -156,12 +158,12 @@ export class JiraService {
     try {
       // Make a request to get all fields
       const fields = await this.client.listFields();
-      
+
       // Find the Parent field
       const parentField = fields.find(
-        (field: any) => 
-          field.name === 'Parent' || 
-          field.custom === true && field.name.toLowerCase().includes('parent')
+        (field: any) =>
+          field.name === 'Parent' ||
+          (field.custom === true && field.name.toLowerCase().includes('parent'))
       );
 
       if (!parentField) {

@@ -129,18 +129,25 @@ npm run jira "COMMAND"
 
 5. Create new tickets:
    ```bash
+   # Create a ticket using JSON configuration
    # Cursor Command
-   /jira create PROJECT-KEY "Ticket Title" "Description"                    # Basic ticket
-   /jira create PROJECT-KEY "Ticket Title" "Description" EPIC-123           # Link to epic
-   /jira create PROJECT-KEY "Ticket Title" "Description" --type Bug         # Set type
-   /jira create PROJECT-KEY "Ticket Title" "Description" EPIC-123 --type Task  # All options
+   /jira create --json ticket.json                    # Using a JSON config file
 
    # Standalone NPM
-   npm run jira 'create PROJECT-KEY "Ticket Title" "Description"'
-   npm run jira 'create PROJECT-KEY "Ticket Title" "Description" EPIC-123'
-   npm run jira 'create PROJECT-KEY "Ticket Title" "Description" --type Bug'
-   npm run jira 'create PROJECT-KEY "Ticket Title" "Description" EPIC-123 --type Task'
+   npm run jira "create --json ticket.json"
    ```
+
+   Example ticket.json structure:
+   ```json
+   {
+     "project": "PROJECT-KEY",
+     "title": "Ticket Title",
+     "description": "Detailed ticket description",
+     "epic": "EPIC-123",           # Optional: Link to epic
+     "type": "Story"               # Optional: Issue type (defaults to Story)
+   }
+   ```
+
    Available issue types (must match your Jira configuration):
    - Story (default)
    - Bug
@@ -148,24 +155,7 @@ npm run jira "COMMAND"
    - Epic
    - Subtask
 
-Note: When using commands with spaces or special characters, make sure to properly quote them:
-```bash
-# Cursor Command - Good ✅
-/jira search "my search term"
-/jira create PROJECT-KEY "My New Feature" "Detailed description here"
-
-# Cursor Command - Bad ❌
-/jira search my search term
-/jira create PROJECT-KEY My New Feature "Description"
-
-# Standalone NPM - Good ✅
-npm run jira 'search "my search term"'
-npm run jira 'create PROJECT-KEY "My New Feature" "Detailed description here"'
-
-# Standalone NPM - Bad ❌
-npm run jira search "my search term"
-npm run jira create PROJECT-KEY My New Feature "Description"
-```
+Note: When using commands with spaces or special characters in your JSON file, make sure they are properly escaped according to JSON standards.
 
 ## Development
 

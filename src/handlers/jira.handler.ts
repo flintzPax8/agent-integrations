@@ -29,9 +29,9 @@ export class JiraCommandHandler {
       try {
         const config = this.readJsonConfig(jsonPath);
         const ticket = await this.jiraService.createTicket(config);
-        return ticket.key ? 
-          `Created ticket ${ticket.key}${ticket.fields?.summary ? `: ${ticket.fields.summary}` : ''}` :
-          `Created ticket successfully`;
+        return ticket.key
+          ? `Created ticket ${ticket.key}${ticket.fields?.summary ? `: ${ticket.fields.summary}` : ''}`
+          : `Created ticket successfully`;
       } catch (error: any) {
         return `Failed to create ticket: ${error.message}`;
       }
@@ -94,7 +94,7 @@ export class JiraCommandHandler {
         const stdin = fs.readFileSync(0, 'utf-8');
         return JSON.parse(stdin);
       }
-      
+
       const content = fs.readFileSync(path, 'utf-8');
       return JSON.parse(content);
     } catch (error: any) {
