@@ -131,10 +131,10 @@ npm run jira "COMMAND"
    ```bash
    # Create a ticket using JSON configuration
    # Cursor Command
-   /jira create --json ticket.json                    # Using a JSON config file
+   /jira create -- create --json ticket.json # Using a JSON config file
 
    # Standalone NPM
-   npm run jira "create --json ticket.json"
+   npm run jira -- create --json ticket.json
    ```
 
    Example ticket.json structure:
