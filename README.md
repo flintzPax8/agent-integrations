@@ -56,7 +56,7 @@ To use the `/jira` shorthand command in Cursor, add the following to your `curso
         "/jira TICKET-123",
         "/jira search \"search text\"",
         "/jira sprint PROJECT-KEY",
-        "/jira create PROJECT-KEY \"Title\" \"Description\" [EPIC-KEY] [--type TYPE]"
+        "/jira --create --json ticket.json"
       ]
     }
   }
