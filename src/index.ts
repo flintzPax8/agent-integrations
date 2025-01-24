@@ -9,9 +9,15 @@ async function main(args: string[]) {
   }
 
   try {
-    const command = args.join(' ');
-    const result = await handler.handleCommand(command);
-    console.log(result);
+    // Special handling for create command to preserve argument structure
+    if (args[0] === 'create') {
+      const result = await handler.handleCommand(args);
+      console.log(result);
+    } else {
+      const command = args.join(' ');
+      const result = await handler.handleCommand(command);
+      console.log(result);
+    }
   } catch (error: any) {
     console.error('Error:', error.message);
   }

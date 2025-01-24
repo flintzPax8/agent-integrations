@@ -1,4 +1,15 @@
 import { JiraService } from '../services/jira.service';
+import fs from 'fs';
+
+type JiraIssueType = 'Story' | 'Task' | 'Bug' | 'Epic';
+
+interface CreateTicketConfig {
+  projectKey: string;
+  summary: string;
+  description?: string;
+  epicKey?: string;
+  issueType?: JiraIssueType;
+}
 
 export class JiraCommandHandler {
   private jiraService: JiraService;
@@ -7,19 +18,40 @@ export class JiraCommandHandler {
     this.jiraService = new JiraService();
   }
 
-  async handleCommand(command: string): Promise<string> {
+  async handleCommand(command: string | string[]): Promise<string> {
+    // Handle create command with JSON config
+    if (Array.isArray(command) && command[0] === 'create' && command[1] === '--json') {
+      const jsonPath = command[2];
+      if (!jsonPath) {
+        return 'Please provide a JSON file path: create --json <path>';
+      }
+
+      try {
+        const config = this.readJsonConfig(jsonPath);
+        const ticket = await this.jiraService.createTicket(config);
+        return ticket.key ? 
+          `Created ticket ${ticket.key}${ticket.fields?.summary ? `: ${ticket.fields.summary}` : ''}` :
+          `Created ticket successfully`;
+      } catch (error: any) {
+        return `Failed to create ticket: ${error.message}`;
+      }
+    }
+
+    // Handle string commands
+    const cmdStr = Array.isArray(command) ? command.join(' ') : command;
+
     // Command: TICKET-123 (short format)
     // Command: ticket TICKET-123 (medium format)
     // Command: fetch ticket TICKET-123 (long format)
-    if (command.match(/^(?:(?:fetch )?ticket )?([A-Z]+-\d+)/i)) {
-      const ticketId = command.match(/^(?:(?:fetch )?ticket )?([A-Z]+-\d+)/i)![1];
+    if (cmdStr.match(/^(?:(?:fetch )?ticket )?([A-Z]+-\d+)/i)) {
+      const ticketId = cmdStr.match(/^(?:(?:fetch )?ticket )?([A-Z]+-\d+)/i)![1];
       const ticket = await this.jiraService.getTicketById(ticketId);
       return this.formatTicketResponse(ticket);
     }
 
     // Command: search "search text" or search text without quotes
-    if (command.startsWith('search ')) {
-      const searchText = command.slice(7).replace(/^"(.*)"$/, '$1'); // Remove quotes if present
+    if (cmdStr.startsWith('search ')) {
+      const searchText = cmdStr.slice(7).replace(/^"(.*)"$/, '$1'); // Remove quotes if present
       const tickets = await this.jiraService.searchTickets({ searchText });
       return this.formatTicketsResponse(tickets);
     }
@@ -28,33 +60,18 @@ export class JiraCommandHandler {
     // Command: sprint PROJECT-KEY assignee "John Doe"
     // Command: sprint PROJECT-KEY assignee John Doe
     const sprintRegex = /^sprint ([A-Z]+)(?:\s+assignee\s+(?:"([^"]+)"|([^\s]+(?:\s+[^\s]+)*)))?$/i;
-    if (command.match(sprintRegex)) {
-      const [, projectKey, quotedAssignee, unquotedAssignee] = command.match(sprintRegex)!;
+    if (cmdStr.match(sprintRegex)) {
+      const [, projectKey, quotedAssignee, unquotedAssignee] = cmdStr.match(sprintRegex)!;
       const assignee = quotedAssignee || unquotedAssignee;
       const tickets = await this.jiraService.getCurrentSprint(projectKey, assignee);
       return this.formatTicketsResponse(tickets);
     }
 
     // Command: sprint tickets PROJECT-KEY SPRINT-ID
-    if (command.match(/^sprint tickets ([A-Z]+) (\d+)/i)) {
-      const [, projectKey, sprintId] = command.match(/^sprint tickets ([A-Z]+) (\d+)/i)!;
+    if (cmdStr.match(/^sprint tickets ([A-Z]+) (\d+)/i)) {
+      const [, projectKey, sprintId] = cmdStr.match(/^sprint tickets ([A-Z]+) (\d+)/i)!;
       const tickets = await this.jiraService.getSprintTickets(projectKey, sprintId);
       return this.formatTicketsResponse(tickets);
-    }
-
-    // Command: create PROJECT-KEY "Title" "Description" [EPIC-KEY] [--type TYPE]
-    const createRegex =
-      /^create ([A-Z]+) "([^"]+)"(?:\s+"([^"]+)")?(?:\s+([A-Z]+-\d+))?(?:\s+--type\s+([^\s]+))?$/i;
-    if (command.match(createRegex)) {
-      const [, projectKey, summary, description, epicKey, issueType] = command.match(createRegex)!;
-      const ticket = await this.jiraService.createTicket({
-        projectKey,
-        summary,
-        description,
-        epicKey,
-        issueType,
-      });
-      return `Created ticket ${ticket.key}: ${ticket.fields.summary}`;
     }
 
     return (
@@ -66,8 +83,23 @@ export class JiraCommandHandler {
       'sprint PROJECT-KEY (current sprint)\n' +
       'sprint PROJECT-KEY assignee John Doe (current sprint by assignee)\n' +
       'sprint tickets PROJECT-KEY SPRINT-ID\n' +
-      'create PROJECT-KEY "Title" "Description" [EPIC-KEY] [--type TYPE]'
+      'create --json <path>'
     );
+  }
+
+  private readJsonConfig(path: string): CreateTicketConfig {
+    try {
+      if (path === '-') {
+        // Read from stdin
+        const stdin = fs.readFileSync(0, 'utf-8');
+        return JSON.parse(stdin);
+      }
+      
+      const content = fs.readFileSync(path, 'utf-8');
+      return JSON.parse(content);
+    } catch (error: any) {
+      throw new Error(`Failed to read config: ${error.message}`);
+    }
   }
 
   private formatTicketResponse(ticket: any): string {

@@ -104,13 +104,22 @@ export class JiraService {
     epicKey?: string;
     issueType?: string;
   }): Promise<JiraTicketResponse> {
+    // Validate issue type
+    const validIssueTypes = ['Story', 'Task', 'Bug', 'Epic'];
+    const issueType = params.issueType || 'Story';
+    
+    if (!validIssueTypes.includes(issueType)) {
+      throw new Error(`Invalid issue type: ${issueType}. Must be one of: ${validIssueTypes.join(', ')}`);
+    }
     try {
       const issueData = {
         fields: {
           project: { key: params.projectKey },
           summary: params.summary,
           description: params.description || '',
-          issuetype: { name: params.issueType || 'Story' },
+          issuetype: { 
+            name: params.issueType || 'Story'
+          },
         },
       };
 
@@ -132,14 +141,39 @@ export class JiraService {
       // First verify the epic exists
       await this.getTicketById(epicKey);
 
-      // Link the ticket to the epic using the "Epic Link" field
+      // Link the ticket to the epic using the parent field
       await this.client.updateIssue(ticketKey, {
         fields: {
-          customfield_10014: epicKey, // Note: Epic Link field ID may vary in your Jira instance
+          parent: { key: epicKey }
         },
       });
     } catch (error: any) {
       throw new Error(`Failed to link ticket to epic: ${error.message}`);
+    }
+  }
+
+  private async getEpicLinkFieldId(): Promise<string> {
+    try {
+      // Make a request to get all fields
+      const fields = await this.client.listFields();
+      
+      // Find the Parent field
+      const parentField = fields.find(
+        (field: any) => 
+          field.name === 'Parent' || 
+          field.custom === true && field.name.toLowerCase().includes('parent')
+      );
+
+      if (!parentField) {
+        throw new Error('Parent field not found in Jira configuration');
+      }
+
+      // Debug log to see the found field
+      console.log('Found Parent field:', parentField);
+
+      return parentField.id;
+    } catch (error: any) {
+      throw new Error(`Failed to get Parent field ID: ${error.message}`);
     }
   }
 }
