@@ -14,7 +14,7 @@ export class JiraService {
       username: config?.username || process.env.JIRA_USERNAME || '',
       password: config?.password || process.env.JIRA_API_TOKEN || '',
       apiVersion: config?.apiVersion || '2',
-      strictSSL: config?.strictSSL || true
+      strictSSL: config?.strictSSL || true,
     });
   }
 
@@ -42,17 +42,19 @@ export class JiraService {
         jql = params.searchText;
       } else {
         const jqlParts: string[] = [];
-        
+
         if (params.projectKey) {
           jqlParts.push(`project = ${params.projectKey}`);
         }
-        
+
         if (params.sprintId) {
           jqlParts.push(`sprint = ${params.sprintId}`);
         }
-        
+
         if (params.searchText) {
-          jqlParts.push(`(summary ~ "${params.searchText}" OR description ~ "${params.searchText}" OR "Epic Name" ~ "${params.searchText}")`);
+          jqlParts.push(
+            `(summary ~ "${params.searchText}" OR description ~ "${params.searchText}" OR "Epic Name" ~ "${params.searchText}")`
+          );
         }
 
         if (params.jql) {
@@ -66,7 +68,7 @@ export class JiraService {
       console.log('JQL Query:', jql); // Debug log
 
       const response = await this.client.searchJira(jql || 'order by created DESC', {
-        maxResults: params.maxResults || 50
+        maxResults: params.maxResults || 50,
       });
 
       return response.issues as unknown as JiraTicketResponse[];
@@ -79,7 +81,7 @@ export class JiraService {
     return this.searchTickets({
       projectKey,
       sprintId,
-      maxResults: 100
+      maxResults: 100,
     });
   }
 
@@ -90,8 +92,90 @@ export class JiraService {
     }
     const response = await this.client.searchJira(jql, {
       maxResults: 50,
-      fields: ['summary', 'status', 'sprint', 'issuetype', 'priority', 'assignee', 'description']
+      fields: ['summary', 'status', 'sprint', 'issuetype', 'priority', 'assignee', 'description'],
     });
     return response.issues as unknown as JiraTicketResponse[];
   }
-} 
+
+  async createTicket(params: {
+    projectKey: string;
+    summary: string;
+    description?: string;
+    epicKey?: string;
+    issueType?: string;
+  }): Promise<JiraTicketResponse> {
+    // Validate issue type
+    const validIssueTypes = ['Story', 'Task', 'Bug', 'Epic'];
+    const issueType = params.issueType || 'Story';
+
+    if (!validIssueTypes.includes(issueType)) {
+      throw new Error(
+        `Invalid issue type: ${issueType}. Must be one of: ${validIssueTypes.join(', ')}`
+      );
+    }
+    try {
+      const issueData = {
+        fields: {
+          project: { key: params.projectKey },
+          summary: params.summary,
+          description: params.description || '',
+          issuetype: {
+            name: params.issueType || 'Story',
+          },
+        },
+      };
+
+      const response = await this.client.addNewIssue(issueData);
+
+      // If epic key is provided, link the ticket to the epic
+      if (params.epicKey) {
+        await this.linkTicketToEpic(response.key, params.epicKey);
+      }
+
+      return response as unknown as JiraTicketResponse;
+    } catch (error: any) {
+      throw new Error(`Failed to create ticket: ${error.message}`);
+    }
+  }
+
+  private async linkTicketToEpic(ticketKey: string, epicKey: string): Promise<void> {
+    try {
+      // First verify the epic exists
+      await this.getTicketById(epicKey);
+
+      // Link the ticket to the epic using the parent field
+      await this.client.updateIssue(ticketKey, {
+        fields: {
+          parent: { key: epicKey },
+        },
+      });
+    } catch (error: any) {
+      throw new Error(`Failed to link ticket to epic: ${error.message}`);
+    }
+  }
+
+  private async getEpicLinkFieldId(): Promise<string> {
+    try {
+      // Make a request to get all fields
+      const fields = await this.client.listFields();
+
+      // Find the Parent field
+      const parentField = fields.find(
+        (field: any) =>
+          field.name === 'Parent' ||
+          (field.custom === true && field.name.toLowerCase().includes('parent'))
+      );
+
+      if (!parentField) {
+        throw new Error('Parent field not found in Jira configuration');
+      }
+
+      // Debug log to see the found field
+      console.log('Found Parent field:', parentField);
+
+      return parentField.id;
+    } catch (error: any) {
+      throw new Error(`Failed to get Parent field ID: ${error.message}`);
+    }
+  }
+}

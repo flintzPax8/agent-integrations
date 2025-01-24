@@ -38,42 +38,124 @@ This integration allows you to interact with Jira directly from Cursor using sim
    npm run build
    ```
 
+### 4. Cursor Custom Command Setup (Optional)
+To use the `/jira` shorthand command in Cursor, add the following to your `cursor.settings.json` or `cursor.config.json`:
+
+```json
+{
+  "commands": {
+    "/jira": {
+      "description": "Jira Integrator",
+      "script": "cd PATH_TO_REPO/agent-integrations && npm run jira $*",
+      "type": "terminal",
+      "autoRun": true,
+      "requireApproval": false,
+      "safe": true,
+      "shell": "/bin/bash",
+      "examples": [
+        "/jira TICKET-123",
+        "/jira search \"search text\"",
+        "/jira sprint PROJECT-KEY",
+        "/jira create PROJECT-KEY \"Title\" \"Description\" [EPIC-KEY] [--type TYPE]"
+      ]
+    }
+  }
+}
+```
+
+Replace `PATH_TO_REPO` with the absolute path to where you cloned this repository (e.g., `~/Development` or `/Users/username/Development`).
+
+Note: After adding the command, you may need to restart Cursor for the changes to take effect.
+
 ## Usage
 
-You can run Jira commands directly from the command line using either:
+There are two ways to use this integration:
+
+### A. Using Cursor Custom Command (Recommended)
+If you have this configured as a Cursor custom command, you can use the shorthand:
 ```bash
-npm run jira "/jira TICKET-123"
-# or
-npm start "/jira TICKET-123"
+/jira COMMAND
+```
+
+### B. Using as Standalone NPM Package
+If you're using this as a standalone package, prefix commands with `npm run jira`:
+```bash
+npm run jira "COMMAND"
 ```
 
 ### Available Commands
 
 1. Fetch a specific ticket (multiple formats supported):
    ```bash
-   npm run jira "/jira TICKET-123"
-   npm run jira "/jira fetch TICKET-123"
-   npm run jira "/jira fetch ticket TICKET-123"
+   # Cursor Command
+   /jira TICKET-123
+   /jira ticket TICKET-123
+   /jira fetch ticket TICKET-123
+
+   # Standalone NPM
+   npm run jira "TICKET-123"
+   npm run jira "ticket TICKET-123"
+   npm run jira "fetch ticket TICKET-123"
    ```
 
 2. Search for tickets:
    ```bash
-   npm run jira '/jira search "search text"'
+   # Cursor Command
+   /jira search "search text"
+
+   # Standalone NPM
+   npm run jira 'search "search text"'
    ```
 
-3. Get tickets from a sprint:
+3. Get tickets from current sprint:
    ```bash
-   npm run jira "/jira sprint tickets PROJECT-KEY SPRINT-ID"
+   # Cursor Command
+   /jira sprint PROJECT-KEY                           # All tickets in current sprint
+   /jira sprint PROJECT-KEY assignee "John Doe"       # Current sprint tickets for assignee
+
+   # Standalone NPM
+   npm run jira "sprint PROJECT-KEY"
+   npm run jira 'sprint PROJECT-KEY assignee "John Doe"'
    ```
 
-Note: When using commands with spaces or special characters, make sure to properly quote them:
-```bash
-# Good ✅
-npm run jira '/jira search "my search term"'
+4. Get tickets from a specific sprint:
+   ```bash
+   # Cursor Command
+   /jira sprint tickets PROJECT-KEY SPRINT-ID
 
-# Bad ❌
-npm run jira /jira search "my search term"
-```
+   # Standalone NPM
+   npm run jira "sprint tickets PROJECT-KEY SPRINT-ID"
+   ```
+
+5. Create new tickets:
+   ```bash
+   # Create a ticket using JSON configuration
+   # Cursor Command
+   /jira create --json ticket.json                    # Using a JSON config file
+
+   # Standalone NPM
+   npm run jira "create --json ticket.json"
+   ```
+
+   Example ticket.json structure:
+   ```json
+   {
+     "project": "PROJECT-KEY",
+     "title": "Ticket Title",
+     "description": "Detailed ticket description",
+     "epic": "EPIC-123",           # Optional: Link to epic
+     "type": "Story"               # Optional: Issue type (defaults to Story)
+   }
+   ```
+
+   Available issue types (must match your Jira configuration):
+   - Story (default)
+   - Bug
+   - Task
+   - Epic
+   - Subtask
+
+Note: When using commands with spaces or special characters in your JSON file, make sure they are properly escaped according to JSON standards.
 
 ## Development
 
@@ -83,31 +165,6 @@ The integration is built with TypeScript and uses the following structure:
 - `src/services/` - Core services (Jira API interaction)
 - `src/handlers/` - Command handlers
 
-### Project Structure
-```
-agent-integrations/
-├── src/
-│   ├── types/
-│   │   └── jira.types.ts    # Type definitions
-│   ├── services/
-│   │   └── jira.service.ts  # Jira API service
-│   ├── handlers/
-│   │   └── jira.handler.ts  # Command handling
-│   └── index.ts            # Entry point
-├── .env                    # Configuration
-├── .gitignore             # Git ignore patterns
-└── package.json           # Dependencies
-```
-
-To build:
-```bash
-npm run build
-```
-
-To test:
-```bash
-npm test
-```
 
 ## Security Notes
 - Never commit your `.env` file or expose your API token

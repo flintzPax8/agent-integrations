@@ -35,4 +35,4 @@ logs/
 .npm
 
 # Optional REPL history
-.node_repl_history 
+.node_repl_history ticket.json

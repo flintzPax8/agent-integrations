@@ -45,4 +45,4 @@ export interface JiraTicketResponse {
       endDate?: string;
     };
   };
-} 
+}
