@@ -14,7 +14,7 @@ export class JiraService {
       username: config?.username || process.env.JIRA_USERNAME || '',
       password: config?.password || process.env.JIRA_API_TOKEN || '',
       apiVersion: config?.apiVersion || '2',
-      strictSSL: config?.strictSSL || true
+      strictSSL: config?.strictSSL || true,
     });
   }
 
@@ -42,17 +42,19 @@ export class JiraService {
         jql = params.searchText;
       } else {
         const jqlParts: string[] = [];
-        
+
         if (params.projectKey) {
           jqlParts.push(`project = ${params.projectKey}`);
         }
-        
+
         if (params.sprintId) {
           jqlParts.push(`sprint = ${params.sprintId}`);
         }
-        
+
         if (params.searchText) {
-          jqlParts.push(`(summary ~ "${params.searchText}" OR description ~ "${params.searchText}" OR "Epic Name" ~ "${params.searchText}")`);
+          jqlParts.push(
+            `(summary ~ "${params.searchText}" OR description ~ "${params.searchText}" OR "Epic Name" ~ "${params.searchText}")`
+          );
         }
 
         if (params.jql) {
@@ -66,7 +68,7 @@ export class JiraService {
       console.log('JQL Query:', jql); // Debug log
 
       const response = await this.client.searchJira(jql || 'order by created DESC', {
-        maxResults: params.maxResults || 50
+        maxResults: params.maxResults || 50,
       });
 
       return response.issues as unknown as JiraTicketResponse[];
@@ -79,7 +81,7 @@ export class JiraService {
     return this.searchTickets({
       projectKey,
       sprintId,
-      maxResults: 100
+      maxResults: 100,
     });
   }
 
@@ -90,7 +92,7 @@ export class JiraService {
     }
     const response = await this.client.searchJira(jql, {
       maxResults: 50,
-      fields: ['summary', 'status', 'sprint', 'issuetype', 'priority', 'assignee', 'description']
+      fields: ['summary', 'status', 'sprint', 'issuetype', 'priority', 'assignee', 'description'],
     });
     return response.issues as unknown as JiraTicketResponse[];
   }
@@ -108,12 +110,12 @@ export class JiraService {
           project: { key: params.projectKey },
           summary: params.summary,
           description: params.description || '',
-          issuetype: { name: params.issueType || 'Story' }
-        }
+          issuetype: { name: params.issueType || 'Story' },
+        },
       };
 
       const response = await this.client.addNewIssue(issueData);
-      
+
       // If epic key is provided, link the ticket to the epic
       if (params.epicKey) {
         await this.linkTicketToEpic(response.key, params.epicKey);
@@ -129,15 +131,15 @@ export class JiraService {
     try {
       // First verify the epic exists
       await this.getTicketById(epicKey);
-      
+
       // Link the ticket to the epic using the "Epic Link" field
       await this.client.updateIssue(ticketKey, {
         fields: {
-          customfield_10014: epicKey // Note: Epic Link field ID may vary in your Jira instance
-        }
+          customfield_10014: epicKey, // Note: Epic Link field ID may vary in your Jira instance
+        },
       });
     } catch (error: any) {
       throw new Error(`Failed to link ticket to epic: ${error.message}`);
     }
   }
-} 
+}

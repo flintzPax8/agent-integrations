@@ -43,7 +43,8 @@ export class JiraCommandHandler {
     }
 
     // Command: create PROJECT-KEY "Title" "Description" [EPIC-KEY] [--type TYPE]
-    const createRegex = /^create ([A-Z]+) "([^"]+)"(?:\s+"([^"]+)")?(?:\s+([A-Z]+-\d+))?(?:\s+--type\s+([^\s]+))?$/i;
+    const createRegex =
+      /^create ([A-Z]+) "([^"]+)"(?:\s+"([^"]+)")?(?:\s+([A-Z]+-\d+))?(?:\s+--type\s+([^\s]+))?$/i;
     if (command.match(createRegex)) {
       const [, projectKey, summary, description, epicKey, issueType] = command.match(createRegex)!;
       const ticket = await this.jiraService.createTicket({
@@ -51,34 +52,42 @@ export class JiraCommandHandler {
         summary,
         description,
         epicKey,
-        issueType
+        issueType,
       });
       return `Created ticket ${ticket.key}: ${ticket.fields.summary}`;
     }
 
-    return 'Invalid command. Available commands:\n' +
-           'TICKET-123\n' +
-           'ticket TICKET-123\n' +
-           'fetch ticket TICKET-123\n' +
-           'search text or search "text with spaces"\n' +
-           'sprint PROJECT-KEY (current sprint)\n' +
-           'sprint PROJECT-KEY assignee John Doe (current sprint by assignee)\n' +
-           'sprint tickets PROJECT-KEY SPRINT-ID\n' +
-           'create PROJECT-KEY "Title" "Description" [EPIC-KEY] [--type TYPE]';
+    return (
+      'Invalid command. Available commands:\n' +
+      'TICKET-123\n' +
+      'ticket TICKET-123\n' +
+      'fetch ticket TICKET-123\n' +
+      'search text or search "text with spaces"\n' +
+      'sprint PROJECT-KEY (current sprint)\n' +
+      'sprint PROJECT-KEY assignee John Doe (current sprint by assignee)\n' +
+      'sprint tickets PROJECT-KEY SPRINT-ID\n' +
+      'create PROJECT-KEY "Title" "Description" [EPIC-KEY] [--type TYPE]'
+    );
   }
 
   private formatTicketResponse(ticket: any): string {
-    let response = `🎫 ${ticket.key}: ${ticket.fields.summary}\n` +
-           `Status: ${ticket.fields.status.name}\n` +
-           `Type: ${ticket.fields.issuetype.name}\n` +
-           `Priority: ${ticket.fields.priority.name}\n` +
-           `Assignee: ${ticket.fields.assignee?.displayName || 'Unassigned'}\n` +
-           `Description: ${ticket.fields.description || 'No description'}\n`;
+    let response =
+      `🎫 ${ticket.key}: ${ticket.fields.summary}\n` +
+      `Status: ${ticket.fields.status.name}\n` +
+      `Type: ${ticket.fields.issuetype.name}\n` +
+      `Priority: ${ticket.fields.priority.name}\n` +
+      `Assignee: ${ticket.fields.assignee?.displayName || 'Unassigned'}\n` +
+      `Description: ${ticket.fields.description || 'No description'}\n`;
 
     if (ticket.fields.subtasks && ticket.fields.subtasks.length > 0) {
-      response += '\nSubtasks:\n' + ticket.fields.subtasks
-        .map((subtask: any) => `- ${subtask.key}: ${subtask.fields.summary} (${subtask.fields.status.name})`)
-        .join('\n');
+      response +=
+        '\nSubtasks:\n' +
+        ticket.fields.subtasks
+          .map(
+            (subtask: any) =>
+              `- ${subtask.key}: ${subtask.fields.summary} (${subtask.fields.status.name})`
+          )
+          .join('\n');
     }
 
     return response;
@@ -90,16 +99,16 @@ export class JiraCommandHandler {
     }
 
     let response = '';
-    
+
     // Get sprint name from the first ticket if available
     if (tickets[0]?.fields?.sprint) {
       response += `Sprint: ${tickets[0].fields.sprint.name}\n\n`;
     }
 
-    response += tickets.map(ticket => 
-      `🎫 ${ticket.key}: ${ticket.fields.summary} (${ticket.fields.status.name})`
-    ).join('\n');
+    response += tickets
+      .map(ticket => `🎫 ${ticket.key}: ${ticket.fields.summary} (${ticket.fields.status.name})`)
+      .join('\n');
 
     return response;
   }
-} 
+}
